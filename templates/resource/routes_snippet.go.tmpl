@@ -1,0 +1,4 @@
+	r.GET("/{{.NamePlural}}", handlers.List{{.NameCamel}}s)
+	r.GET("/{{.NamePlural}}/:id", handlers.Get{{.NameCamel}})
+	r.POST("/{{.NamePlural}}", handlers.Create{{.NameCamel}})
+

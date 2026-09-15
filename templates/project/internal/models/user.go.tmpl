@@ -1,0 +1,10 @@
+package models
+
+// User is a minimal demo user record used by the JWT auth example.
+//
+// DEMO ONLY: replace this with a real user store (database-backed) before
+// using this in production.
+type User struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+}

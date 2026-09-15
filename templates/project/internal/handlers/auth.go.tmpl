@@ -1,0 +1,76 @@
+package handlers
+
+import (
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
+
+	"{{.ModulePath}}/internal/config"
+	"{{.ModulePath}}/internal/models"
+)
+
+// demoUser and demoPasswordHash back a hardcoded account for demonstrating
+// the login flow.
+//
+// DEMO ONLY: replace with a real user store (database-backed) before using
+// this in production. Credentials: demo / demo123.
+var demoUser = models.User{
+	ID:       "1",
+	Username: "demo",
+}
+
+var demoPasswordHash = mustHash("demo123")
+
+func mustHash(password string) string {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		panic(err)
+	}
+	return string(hash)
+}
+
+type loginRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+// Login authenticates the demo user and issues a signed JWT.
+func Login(cfg *config.Config) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req loginRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if req.Username != demoUser.Username ||
+			bcrypt.CompareHashAndPassword([]byte(demoPasswordHash), []byte(req.Password)) != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+			return
+		}
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"sub":      demoUser.ID,
+			"username": demoUser.Username,
+			"exp":      time.Now().Add(24 * time.Hour).Unix(),
+		})
+
+		signed, err := token.SignedString([]byte(cfg.JWTSecret))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to sign token"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"token": signed})
+	}
+}
+
+// Me returns the identity of the authenticated caller, derived from the JWT
+// claims set by middleware.RequireAuth.
+func Me(c *gin.Context) {
+	claims, _ := c.Get("claims")
+	c.JSON(http.StatusOK, gin.H{"claims": claims})
+}

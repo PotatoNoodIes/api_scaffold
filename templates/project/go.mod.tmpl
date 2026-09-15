@@ -1,0 +1,11 @@
+module {{.ModulePath}}
+
+go {{.GoVersion}}
+
+require (
+	github.com/gin-gonic/gin v1.10.0
+{{- if eq .AuthMode "jwt"}}
+	github.com/golang-jwt/jwt/v5 v5.2.1
+	golang.org/x/crypto v0.24.0
+{{- end}}
+)

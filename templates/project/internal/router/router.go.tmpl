@@ -1,0 +1,33 @@
+package router
+
+import (
+	"github.com/gin-gonic/gin"
+
+	"{{.ModulePath}}/internal/config"
+	"{{.ModulePath}}/internal/handlers"
+	"{{.ModulePath}}/internal/middleware"
+)
+
+// New builds the Gin engine for {{.ProjectName}}, wiring up all routes.
+func New(cfg *config.Config) *gin.Engine {
+	r := gin.New()
+	r.Use(gin.Recovery(), middleware.Logging())
+
+	r.GET("/health", handlers.Health)
+
+{{- if .SwaggerOn}}
+	r.Static("/docs", "./docs")
+{{- end}}
+
+{{- if eq .AuthMode "jwt"}}
+	r.POST("/login", handlers.Login(cfg))
+
+	authorized := r.Group("/")
+	authorized.Use(middleware.RequireAuth(cfg))
+	authorized.GET("/me", handlers.Me)
+{{- end}}
+
+	// api-scaffold:routes (do not remove this comment)
+
+	return r
+}

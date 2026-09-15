@@ -1,0 +1,69 @@
+package handlers
+
+import (
+	"net/http"
+	"strconv"
+	"sync"
+
+	"github.com/gin-gonic/gin"
+
+	"{{.ModulePath}}/internal/models"
+)
+
+// {{.NameLower}}Store is an in-memory store for {{.NamePlural}}.
+//
+// DEMO ONLY: replace with a real datastore before using this in production.
+var (
+	{{.NameLower}}Mu     sync.Mutex
+	{{.NameLower}}Store  = map[string]*models.{{.NameCamel}}{}
+	{{.NameLower}}NextID = 1
+)
+
+// List{{.NameCamel}}s returns every {{.NameLower}} in the store.
+func List{{.NameCamel}}s(c *gin.Context) {
+	{{.NameLower}}Mu.Lock()
+	defer {{.NameLower}}Mu.Unlock()
+
+	items := make([]*models.{{.NameCamel}}, 0, len({{.NameLower}}Store))
+	for _, v := range {{.NameLower}}Store {
+		items = append(items, v)
+	}
+	c.JSON(http.StatusOK, items)
+}
+
+// Get{{.NameCamel}} returns a single {{.NameLower}} by ID.
+func Get{{.NameCamel}}(c *gin.Context) {
+	{{.NameLower}}Mu.Lock()
+	defer {{.NameLower}}Mu.Unlock()
+
+	item, ok := {{.NameLower}}Store[c.Param("id")]
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "{{.NameLower}} not found"})
+		return
+	}
+	c.JSON(http.StatusOK, item)
+}
+
+type create{{.NameCamel}}Request struct {
+	Name string `json:"name" binding:"required"`
+}
+
+// Create{{.NameCamel}} creates a new {{.NameLower}}.
+func Create{{.NameCamel}}(c *gin.Context) {
+	var req create{{.NameCamel}}Request
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	{{.NameLower}}Mu.Lock()
+	defer {{.NameLower}}Mu.Unlock()
+
+	id := strconv.Itoa({{.NameLower}}NextID)
+	{{.NameLower}}NextID++
+
+	item := &models.{{.NameCamel}}{ID: id, Name: req.Name}
+	{{.NameLower}}Store[id] = item
+
+	c.JSON(http.StatusCreated, item)
+}
